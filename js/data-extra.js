@@ -27,6 +27,8 @@ const BAL = {
   TREASURE_MIN: 200000,
   TREASURE_MAX: 1000000,
   // ---- safety limits (stop huge numbers from freezing the game, even via debug commands) ----
+  BASE_RECOVERY: 5,            // % of max HP & Mana recovered after every battle won or fled (armor/titles add more)
+  MAX_RECOVERY: 100,
   MAX_STACK: 1000000,          // max quantity of any single item in an inventory
   USE_LIMIT: 1000,             // max potions/buffs used or packs opened per click ("Use all" included)
   UPGRADE_USE_LIMIT: 100000,   // max permanent upgrades applied per click
@@ -196,13 +198,22 @@ const BAL = {
     add('atk', 'ATK'); add('def', 'DEF'); add('magic_atk', 'Magic ATK'); add('magic_def', 'Magic DEF');
     add('atk_bonus', 'ATK'); add('def_bonus', 'DEF'); add('hp_bonus', 'HP'); add('mana_bonus', 'Mana');
     add('magic_atk_bonus', 'Magic ATK'); add('magic_def_bonus', 'Magic DEF'); add('crit_bonus', 'Crit', '%'); add('lifesteal_bonus', 'Lifesteal', '%');
+    add('heal_pct', 'recovery after battle', '%');
     return parts.join(', ');
   };
+  // ---- after-battle recovery on armor: small for not-so-rare, big for very rare ----
+  const ARMOR_HEAL_BY_RARITY = { common: 0, rare: 3, mythical: 5, prismatic: 8, divine: 12, transcendent: 20 };
+  const ARMOR_HEAL_SPECIAL = { plate_armor: 1, diamond_armor: 2, forged_bone_armor: 1, forged_troll_armor: 4 };   // troll armor "regenerates"
+  for (const [k, it] of Object.entries(D.ARMORS)) it.heal_pct = ARMOR_HEAL_SPECIAL[k] ?? ARMOR_HEAL_BY_RARITY[equipRarity(it)];
+  // ---- after-battle recovery on titles (uses the original hp_regen_percent field, which was always 0) ----
+  const TITLE_HEAL_BY_RARITY = { common: 1, rare: 3, mythical: 5, prismatic: 7, divine: 10, transcendent: 15 };
+  for (const [k, t] of Object.entries(D.TITLES)) t.hp_regen_percent = k === 'novice' ? 0 : TITLE_HEAL_BY_RARITY[t.rarity] || 0;
+  D.TITLES.warrior.hp_regen_percent = 2;
   for (const [cat, tbl] of Object.entries(catTable)) {
     for (const [k, it] of Object.entries(D[tbl])) {
       ITEMS[k] = { key: k, cat, name: it.name, rarity: equipRarity(it), price: it.price || 0, score_price: it.score_price || 0,
         desc: (it.desc ? it.desc + ' ' : '') , stats: statText(it), data: it,
-        power: (it.atk || 0) + (it.def || 0) + (it.magic_atk || 0) + (it.magic_def || 0) + (it.atk_bonus || 0) * 2 + (it.def_bonus || 0) * 2 + (it.hp_bonus || 0) + (it.mana_bonus || 0) + (it.crit_bonus || 0) * 3 + (it.lifesteal_bonus || 0) * 3 + (it.magic_atk_bonus || 0) * 2 + (it.magic_def_bonus || 0) * 2 };
+        power: (it.atk || 0) + (it.def || 0) + (it.magic_atk || 0) + (it.magic_def || 0) + (it.atk_bonus || 0) * 2 + (it.def_bonus || 0) * 2 + (it.hp_bonus || 0) + (it.mana_bonus || 0) + (it.crit_bonus || 0) * 3 + (it.lifesteal_bonus || 0) * 3 + (it.magic_atk_bonus || 0) * 2 + (it.magic_def_bonus || 0) * 2 + (it.heal_pct || 0) * 3 };
     }
   }
   for (const [k, it] of Object.entries(D.POTIONS)) {

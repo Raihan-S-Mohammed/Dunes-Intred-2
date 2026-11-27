@@ -207,6 +207,7 @@ const G = {
       treasureBoost: t.treasure_boost_percent || 0,
       materialDiscount: t.material_discount_percent || 0,
       deathPenalty: t.death_penalty_percent || 0,
+      recovery: Math.min(BAL.MAX_RECOVERY, BAL.BASE_RECOVERY + (a.heal_pct || 0) + (t.hp_regen_percent || 0)),
     };
   },
   clampVitals() {
@@ -248,7 +249,7 @@ const G = {
   },
   titleValue(k) {
     const t = D.TITLES[k]; if (!t) return 0;
-    return t.atk_boost * 3 + t.def_boost * 3 + t.hp_boost + t.mana_boost + t.exp_boost * 2 + (t.atk_percent + t.def_percent + t.hp_percent + t.mana_percent) * 4
+    return t.atk_boost * 3 + t.def_boost * 3 + t.hp_boost + t.mana_boost + t.exp_boost * 2 + (t.hp_regen_percent || 0) * 4 + (t.atk_percent + t.def_percent + t.hp_percent + t.mana_percent) * 4
       + (t.money_boost_percent + t.material_boost_percent + t.treasure_boost_percent + t.material_discount_percent + t.crit_chance_percent) * 3 - t.death_penalty_percent * 2;
   },
   autoEquipTitles() {
@@ -688,7 +689,7 @@ const G = {
     } else if (action === 'run') {
       if (Math.random() < (m.is_super_boss ? 0.25 : BAL.RUN_CHANCE)) {
         this.log('You ran away successfully!', 'info');
-        f.over = true; f.result = { type: 'fled' }; this.tickBuffs(); this.save(); return true;
+        f.over = true; this.tickBuffs(); f.result = { type: 'fled', recovered: this.recover() }; this.save(); return true;
       }
       this.log('Failed to run!', 'bad'); this.fx('player', 'FAILED', 'info');
     } else return false;
@@ -749,6 +750,15 @@ const G = {
   },
   /* One battle passes. Normal buffs all tick. For EXP/Coin multipliers only the strongest
      active one ticks — weaker ones wait in the queue, so stacking potions never wastes them. */
+  /* After-battle recovery: base % + armor + titles, of max HP and max Mana. */
+  recover() {
+    const p = this.p, d = this.derive();
+    const hp = Math.max(0, Math.min(Math.floor(d.hpMax * d.recovery / 100), d.hpMax - p.hp));
+    const mana = Math.max(0, Math.min(Math.floor(d.manaMax * d.recovery / 100), d.manaMax - p.mana));
+    p.hp += hp; p.mana += mana;
+    if (hp || mana) this.log(`🌿 Recovered ${hp.toLocaleString()} HP and ${mana.toLocaleString()} Mana (${d.recovery}%).`, 'good');
+    return { hp, mana, pct: d.recovery };
+  },
   tickBuffs() {
     const p = this.p;
     const active = new Set();
@@ -792,7 +802,7 @@ const G = {
     this.tickBuffs();
     if (p.settings.auto_equip_everything) this.autoEquipItems();
     this.checkAchievements();
-    f.result = { type: 'win', money, treasure, score, exp: exp.gained, levels: exp.levels, drops };
+    f.result = { type: 'win', money, treasure, score, exp: exp.gained, levels: exp.levels, drops, recovered: this.recover() };
     this.log(`🎉 You defeated ${m.name}!`, 'win');
     this.save();
   },

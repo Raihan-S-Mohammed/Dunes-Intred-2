@@ -360,3 +360,20 @@ label.row { flex-direction: row; align-items: center; color: var(--muted); }
 .trade-build .search, .trade-build .chips { flex: none; }
 
 .chip.coin { color: #ffd166; border-color: rgba(255,209,102,.45); }
+
+/* ---------- area picker (custom slider: looks the same in every browser) ---------- */
+.area-pick { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+.area-pick-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+.area-pick .area-move { margin: 10px 0 2px; }
+.area-ends { display: flex; justify-content: space-between; padding: 0 44px 6px; }
+.area-slider { -webkit-appearance: none; appearance: none; flex: 1; height: 26px; background: transparent; cursor: pointer; padding: 0; border: 0; box-shadow: none; }
+.area-slider:focus { outline: none; box-shadow: none; }
+.area-slider::-webkit-slider-runnable-track { height: 8px; border-radius: 99px; border: 1px solid var(--line);
+  background: linear-gradient(90deg, var(--gold2) 0, var(--gold) var(--pct, 0%), #0b0d12 var(--pct, 0%)); }
+.area-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe7a3, var(--gold) 55%, var(--gold2)); border: 2px solid #1a1205; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.area-slider::-moz-range-track { height: 8px; border-radius: 99px; border: 1px solid var(--line); background: #0b0d12; }
+.area-slider::-moz-range-progress { height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--gold2), var(--gold)); }
+.area-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe7a3, var(--gold) 55%, var(--gold2)); border: 2px solid #1a1205; }
+.area-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(233,185,73,.35); }
+
+.recover { margin: 4px 0 8px; color: var(--good); font-weight: 700; }

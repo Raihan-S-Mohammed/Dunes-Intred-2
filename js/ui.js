@@ -103,7 +103,7 @@ function areaName(a) {
   if (a <= 80) return 'Prismatic Rift'; if (a < 100) return 'Divine Expanse'; return 'Throne of the Abyss';
 }
 function titleBoostText(t) {
-  const L = { atk_boost: 'ATK', def_boost: 'DEF', hp_boost: 'HP', mana_boost: 'Mana', exp_boost: '% EXP', material_discount_percent: '% craft discount', money_boost_percent: '% money', material_boost_percent: '% material drops', treasure_boost_percent: '% treasure', crit_chance_percent: '% crit', death_penalty_percent: '% death money loss', atk_percent: '% ATK', def_percent: '% DEF', hp_percent: '% HP', mana_percent: '% Mana' };
+  const L = { atk_boost: 'ATK', def_boost: 'DEF', hp_boost: 'HP', mana_boost: 'Mana', exp_boost: '% EXP', material_discount_percent: '% craft discount', money_boost_percent: '% money', material_boost_percent: '% material drops', treasure_boost_percent: '% treasure', crit_chance_percent: '% crit', death_penalty_percent: '% death money loss', hp_regen_percent: '% recovery after battle', atk_percent: '% ATK', def_percent: '% DEF', hp_percent: '% HP', mana_percent: '% Mana' };
   const out = [];
   for (const [k, l] of Object.entries(L)) if (t[k]) out.push(`${t[k] > 0 ? '+' : ''}${t[k]}${l.startsWith('%') ? l : ' ' + l}`);
   return out.join(', ') || 'No bonuses';
@@ -256,18 +256,18 @@ function renderDungeon() {
   return `<div class="page-head"><h2>🗡️ The Dungeon</h2><p class="muted">Area ${p.area} — ${areaName(p.area)}</p></div>
   <div class="grid-2">
     <section class="panel hero-explore">
-      <div class="area-badge"><div class="area-num">${p.area}</div><div><b>${areaName(p.area)}</b><div class="muted">Monsters scale with area. Unlocked up to area ${maxA}.</div></div></div>
-      <div class="area-move">
-        <button class="btn sm" data-act="area-step" data-v="-1" ${p.area <= 1 ? 'disabled' : ''}>◀</button>
-        <input id="area-input" type="range" min="1" max="${maxA}" value="${p.area}" data-act-change="area-range" aria-label="Area">
-        <button class="btn sm" data-act="area-step" data-v="1" ${p.area >= maxA ? 'disabled' : ''}>▶</button>
+      <div class="area-badge"><div class="area-num">${p.area}</div><div><b>Area ${p.area} · ${areaName(p.area)}</b><div class="muted">Higher areas have stronger monsters and better loot.</div></div></div>
+      <div class="area-pick">
+        <div class="area-pick-head"><span>Change area</span><span class="muted small">You can go up to <b>Area ${maxA}</b> of ${BAL.AREAS}</span></div>
+        ${maxA > 1 ? `<div class="area-move">
+          <button class="btn sm" data-act="area-step" data-v="-1" ${p.area <= 1 ? 'disabled' : ''} aria-label="Previous area">◀</button>
+          <input id="area-input" class="area-slider" type="range" min="1" max="${maxA}" value="${p.area}" style="--pct:${((p.area - 1) / (maxA - 1)) * 100}%" data-act-change="area-range" aria-label="Area">
+          <button class="btn sm" data-act="area-step" data-v="1" ${p.area >= maxA ? 'disabled' : ''} aria-label="Next area">▶</button>
+        </div>
+        <div class="area-ends muted small"><span>Area 1</span><span>Area ${maxA}</span></div>` : ''}
+        <div class="muted small center">${maxA >= BAL.AREAS ? '🎉 All areas unlocked!' : `🔒 Area ${maxA + 1} unlocks at level ${G.areaMinLevel(maxA + 1)} (you are level ${p.level})`}</div>
       </div>
-      <div class="muted small center">Next area unlock: ${maxA >= BAL.AREAS ? 'all areas unlocked' : `Area ${maxA + 1} at level ${G.areaMinLevel(maxA + 1)}`}</div>
       <button class="btn primary huge" data-act="explore">🔦 Explore <kbd>E</kbd></button>
-      <div class="row">
-        <button class="btn wide" data-act="treasure">💎 Search for treasure</button>
-        <button class="btn wide" data-act="rest">🛏️ Rest at inn ($${fmt(G.innCost())})</button>
-      </div>
     </section>
     <section class="panel">
       <h3>Status</h3>
@@ -277,6 +277,7 @@ function renderDungeon() {
         <div><span>ATK</span><b>${fmt(d.atk)}</b></div><div><span>DEF</span><b>${fmt(d.def)}</b></div>
         <div><span>Magic ATK</span><b>${fmt(d.magicAtk)}</b></div><div><span>Magic DEF</span><b>${fmt(d.magicDef)}</b></div>
         <div><span>Crit</span><b>${d.crit}%</b></div><div><span>Dodges</span><b>${p.dodge}/${p.max_dodge}</b></div>
+        <div title="HP & Mana restored after each battle you win or run from (base ${BAL.BASE_RECOVERY}% + armor + titles)"><span>Recovery 🌿</span><b>${d.recovery}% / battle</b></div>
       </div>
       <h4>Buffs</h4><div class="chips">${buffChips(p)}</div>
       <h4>Spell slots</h4>
@@ -346,6 +347,7 @@ function renderFightResult() {
         <div><span>Score</span><b>+${fmt(r.score)}</b></div>
         <div><span>EXP</span><b>+${fmt(r.exp)}</b></div>
       </div>
+      ${r.recovered && (r.recovered.hp || r.recovered.mana) ? `<div class="recover">🌿 Recovered +${fmt(r.recovered.hp)} HP · +${fmt(r.recovered.mana)} Mana <span class="muted">(${r.recovered.pct}%)</span></div>` : ''}
       ${r.levels.length ? `<div class="levelup">⬆️ LEVEL UP! You reached level ${r.levels[r.levels.length - 1]}!</div>` : ''}
       ${drops.length ? `<h4>Loot</h4><div class="chips center">${drops.map(([k, n]) => { const it = D.ITEMS[k]; return `<span class="chip r-${it ? it.rarity : 'common'}">${it ? D.CAT_ICON[it.cat] + ' ' + esc(it.name) : esc(k)} ×${n}</span>`; }).join('')}</div>` : '<p class="muted">No item drops.</p>'}
     </div>`;
@@ -354,7 +356,7 @@ function renderFightResult() {
       <p>You lost <b>$${fmt(r.lostMoney)}</b> to the dungeon treasure.</p>
       ${r.lostItems.length ? `<p>Items lost: ${r.lostItems.map(k => esc(D.ITEMS[k] ? D.ITEMS[k].name : k)).join(', ')}</p>` : '<p class="muted">No items lost.</p>'}
       <p class="muted">You wake at camp fully restored.</p></div>`;
-  } else body = `<div class="result"><div class="big-emoji">🏃</div><h2>You escaped from ${esc(m.name)}</h2></div>`;
+  } else body = `<div class="result"><div class="big-emoji">🏃</div><h2>You escaped from ${esc(m.name)}</h2>${r.recovered && (r.recovered.hp || r.recovered.mana) ? `<div class="recover">🌿 Recovered +${fmt(r.recovered.hp)} HP · +${fmt(r.recovered.mana)} Mana <span class="muted">(${r.recovered.pct}%)</span></div>` : ''}</div>`;
   return `<section class="panel">${body}
     <div class="row center"><button class="btn" data-act="end-fight">Back to camp</button><button class="btn primary" data-act="explore">🔦 Explore again <kbd>E</kbd></button></div></section>
     <section class="panel log-panel"><div id="battle-log" class="log">${f.log.map(l => `<div class="l-${l.type}">${esc(l.msg)}</div>`).join('')}</div></section>`;
@@ -543,7 +545,7 @@ function renderHero() {
       ${row('Magic ATK', fmt(d.magicAtk))}${row('Magic DEF', fmt(d.magicDef))}${row('Crit chance', d.crit + '%')}${row('Mana regen', '+' + d.manaRegen + '/turn')}
       ${row('Lifesteal', `${d.lifestealFlat}% + ${d.lifestealPct}% @${d.lifestealChance}%`)}${row('EXP boost', '+' + fmt(d.expBoost) + '%')}
       ${row('EXP gain (perm)', '+' + fmt(d.expGain) + '%')}${row('EXP potion', '×' + fmt(d.expMult))}${row('Coin potion', '×' + fmt(d.coinMult))}
-      ${row('Money boost', '+' + d.moneyBoost + '%')}${row('Dodges', p.dodge + '/' + p.max_dodge)}</div></section>
+      ${row('Recovery', d.recovery + '% / battle')}${row('Money boost', '+' + d.moneyBoost + '%')}${row('Dodges', p.dodge + '/' + p.max_dodge)}</div></section>
     <section class="panel"><h3>Base & permanent</h3><div class="statgrid">
       ${row('Base HP', fmt(p.base.hp_max))}${row('Base Mana', fmt(p.base.mana_max))}${row('Base ATK', fmt(p.base.atk))}${row('Base DEF', fmt(p.base.def))}
       ${row('Perm ATK', '+' + fmt(pm.atk))}${row('Perm DEF', '+' + fmt(pm.def))}${row('Perm HP', '+' + fmt(pm.hp))}${row('Perm Mana', '+' + fmt(pm.mana))}
@@ -756,6 +758,7 @@ document.addEventListener('click', ev => {
   if (fn(el, ev) !== false) render();
 });
 document.addEventListener('input', ev => {
+  if (ev.target.classList && ev.target.classList.contains('area-slider')) { const t = ev.target; t.style.setProperty('--pct', ((t.value - t.min) / Math.max(1, t.max - t.min)) * 100 + '%'); }
   const el = ev.target, a = el.dataset.actInput;
   if (!a) return;
   if (a === 'inv-search') UI.inv.q = el.value;
