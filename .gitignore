@@ -1,0 +1,8 @@
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+# exported save files (personal progress)
+dunes-intred-save-*.json
